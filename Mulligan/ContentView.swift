@@ -64,7 +64,17 @@ struct ContentView: View {
         }
         .frame(minWidth: 900, minHeight: 600)
         .task {
+            // Set initial selected device
+            if selectedDevice == nil, let firstDevice = videoCapture.availableDevices.first {
+                selectedDevice = firstDevice
+            }
             await videoCapture.startSession()
+        }
+        .onChange(of: videoCapture.availableDevices) { _, _ in
+            // Update selected device when devices change
+            if selectedDevice == nil, let firstDevice = videoCapture.availableDevices.first {
+                selectedDevice = firstDevice
+            }
         }
         .onChange(of: selectedDevice) { _, newDevice in
             Task {

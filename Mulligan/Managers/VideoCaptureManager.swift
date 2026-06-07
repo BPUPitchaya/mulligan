@@ -4,6 +4,7 @@ import Observation
 import Combine
 
 @Observable
+@MainActor
 class VideoCaptureManager: NSObject, ObservableObject {
     var captureSession: AVCaptureSession?
     var availableDevices: [AVCaptureDevice] = []
@@ -55,6 +56,13 @@ class VideoCaptureManager: NSObject, ObservableObject {
                 position: .unspecified
             )
             self.availableDevices = builtInDiscovery.devices
+        }
+        
+        // Add first available device as initial input
+        if let firstDevice = availableDevices.first {
+            Task {
+                await switchDevice(to: firstDevice)
+            }
         }
     }
     
