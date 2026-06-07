@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Mulligan needs camera access to capture your golf swing for pose analysis and coaching feedback.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Mulligan needs microphone access to record audio commentary during swing analysis (optional).</string>
+</dict>
+</plist>
