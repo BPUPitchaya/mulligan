@@ -64,6 +64,10 @@ struct ContentView: View {
         }
         .frame(minWidth: 900, minHeight: 600)
         .task {
+            // Connect pose detector to video capture via sample buffer handler
+            videoCapture.setSampleBufferHandler { sampleBuffer in
+                poseDetector.processSampleBuffer(sampleBuffer)
+            }
             // Set initial selected device
             if selectedDevice == nil, let firstDevice = videoCapture.availableDevices.first {
                 selectedDevice = firstDevice

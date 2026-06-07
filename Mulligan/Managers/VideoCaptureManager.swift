@@ -5,11 +5,12 @@ import Combine
 
 @Observable
 @MainActor
-class VideoCaptureManager: NSObject, ObservableObject {
+class VideoCaptureManager: NSObject, ObservableObject, @preconcurrency AVCaptureVideoDataOutputSampleBufferDelegate {
     var captureSession: AVCaptureSession?
     var availableDevices: [AVCaptureDevice] = []
     private var videoOutput: AVCaptureVideoDataOutput?
     private var deviceDiscoverySession: AVCaptureDevice.DiscoverySession?
+    private var onSampleBuffer: ((CMSampleBuffer) -> Void)?
     
     override init() {
         super.init()
@@ -17,11 +18,23 @@ class VideoCaptureManager: NSObject, ObservableObject {
         discoverDevices()
     }
     
+    func setSampleBufferHandler(_ handler: @escaping (CMSampleBuffer) -> Void) {
+        self.onSampleBuffer = handler
+    }
+    
     private func setupCaptureSession() {
         let session = AVCaptureSession()
         session.sessionPreset = .high
         
+        let videoOutput = AVCaptureVideoDataOutput()
+        videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue.main)
+        
+        if session.canAddOutput(videoOutput) {
+            session.addOutput(videoOutput)
+        }
+        
         self.captureSession = session
+        self.videoOutput = videoOutput
     }
     
     private func discoverDevices() {
@@ -58,7 +71,6 @@ class VideoCaptureManager: NSObject, ObservableObject {
         }
     }
     
-    @MainActor
     func startSession() async {
         guard let session = captureSession else { return }
         
@@ -76,7 +88,6 @@ class VideoCaptureManager: NSObject, ObservableObject {
         captureSession?.stopRunning()
     }
     
-    @MainActor
     func switchDevice(to device: AVCaptureDevice?) async {
         guard let session = captureSession,
               let newDevice = device else { return }
@@ -106,5 +117,14 @@ class VideoCaptureManager: NSObject, ObservableObject {
         let previewLayer = AVCaptureVideoPreviewLayer(session: session)
         previewLayer.videoGravity = .resizeAspect
         return previewLayer
+    }
+    
+    func handleSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
+        onSampleBuffer?(sampleBuffer)
+    }
+    
+    // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        handleSampleBuffer(sampleBuffer)
     }
 }

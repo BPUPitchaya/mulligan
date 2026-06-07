@@ -1,4 +1,4 @@
-import Vision
+@preconcurrency import Vision
 import AVFoundation
 import CoreImage
 import Observation
@@ -6,9 +6,8 @@ import simd
 import Combine
 
 @Observable
-@MainActor
 class PoseDetector: NSObject, ObservableObject {
-    var detectedPose: HumanBodyPose?
+    @MainActor var detectedPose: HumanBodyPose?
     private var poseRequest: VNDetectHumanBodyPoseRequest?
     private var visionQueue = DispatchQueue(label: "com.mulligan.visionQueue")
     private var isDetecting = false
@@ -45,8 +44,9 @@ class PoseDetector: NSObject, ObservableObject {
                 
                 if let observations = request.results?.first as? VNHumanBodyPoseObservation {
                     let pose = self?.convertToHumanBodyPose(observations)
+                    nonisolated(unsafe) let unsafeSelf = self
                     DispatchQueue.main.async {
-                        self?.detectedPose = pose
+                        unsafeSelf?.detectedPose = pose
                     }
                 }
             } catch {
