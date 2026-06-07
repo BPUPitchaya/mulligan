@@ -35,9 +35,7 @@ class VideoCaptureManager: NSObject, ObservableObject {
         // Discover external cameras including Continuity Camera (iPhones)
         let deviceTypes: [AVCaptureDevice.DeviceType] = [
             .external,
-            .builtInWideAngleCamera,
-            .continuityCamera,
-            .deskViewCamera
+            .continuityCamera
         ]
         
         let discoverySession = AVCaptureDevice.DiscoverySession(
@@ -49,12 +47,14 @@ class VideoCaptureManager: NSObject, ObservableObject {
         self.deviceDiscoverySession = discoverySession
         self.availableDevices = discoverySession.devices
         
-        // Prefer external cameras (iPhones via Continuity Camera)
-        availableDevices.sort { device1, device2 in
-            if device1.deviceType == .external && device2.deviceType != .external {
-                return true
-            }
-            return false
+        // If no external cameras, fall back to built-in
+        if availableDevices.isEmpty {
+            let builtInDiscovery = AVCaptureDevice.DiscoverySession(
+                deviceTypes: [.builtInWideAngleCamera],
+                mediaType: .video,
+                position: .unspecified
+            )
+            self.availableDevices = builtInDiscovery.devices
         }
     }
     
