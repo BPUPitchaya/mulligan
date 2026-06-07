@@ -60,15 +60,25 @@ class VideoCaptureManager: NSObject, ObservableObject {
     
     @MainActor
     func startSession() async {
-        guard let session = captureSession else { return }
+        guard let session = captureSession else { 
+            print("No capture session available")
+            return 
+        }
+        
+        print("Available devices: \(availableDevices.count)")
+        print("Session inputs: \(session.inputs.count)")
         
         // Ensure we have an input before starting
         if session.inputs.isEmpty, let firstDevice = availableDevices.first {
+            print("No input, adding first device: \(firstDevice.localizedName)")
             await switchDevice(to: firstDevice)
         }
         
         if !session.isRunning {
             session.startRunning()
+            print("Session started, isRunning: \(session.isRunning)")
+        } else {
+            print("Session already running")
         }
     }
     
