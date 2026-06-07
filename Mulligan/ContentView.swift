@@ -78,6 +78,17 @@ struct ContentView: View {
                 selectedDevice = firstDevice
             }
             await videoCapture.startSession()
+            
+            // Listen for view size changes
+            NotificationCenter.default.addObserver(
+                forName: .viewSizeChanged,
+                object: nil,
+                queue: .main
+            ) { notification in
+                if let size = notification.userInfo?["size"] as? CGSize {
+                    swingAnalyzer.setViewSize(size)
+                }
+            }
         }
         .onChange(of: videoCapture.availableDevices) { _, _ in
             // Update selected device when devices change

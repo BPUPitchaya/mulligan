@@ -1,6 +1,10 @@
 import SwiftUI
 import AVFoundation
 
+extension Notification.Name {
+    static let viewSizeChanged = Notification.Name("viewSizeChanged")
+}
+
 struct VideoPreviewView: NSViewRepresentable {
     let captureSession: AVCaptureSession?
     let poseLandmarks: HumanBodyPose?
@@ -84,6 +88,14 @@ class VideoPreviewNSView: NSView {
     override func layout() {
         super.layout()
         previewLayer?.frame = bounds
+        
+        // Update swing analyzer with current view size
+        if let contentView = superview as? NSView,
+           let hostingView = contentView.superview,
+           let window = hostingView.window {
+            // Notify ContentView of size change
+            NotificationCenter.default.post(name: .viewSizeChanged, object: nil, userInfo: ["size": bounds.size])
+        }
     }
     
     override func draw(_ dirtyRect: NSRect) {

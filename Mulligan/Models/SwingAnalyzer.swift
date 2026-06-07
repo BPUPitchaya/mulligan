@@ -8,6 +8,11 @@ class SwingAnalyzer: ObservableObject {
     var currentMetrics: SwingMetrics = SwingMetrics()
     private var poseHistory: [HumanBodyPose] = []
     private let maxHistorySize = 60
+    private var viewSize: CGSize = .zero
+    
+    func setViewSize(_ size: CGSize) {
+        self.viewSize = size
+    }
     
     func updatePose(_ pose: HumanBodyPose, swingPlane: [CGPoint]) {
         poseHistory.append(pose)
@@ -17,10 +22,10 @@ class SwingAnalyzer: ObservableObject {
         
         let previousPose = poseHistory.count > 1 ? poseHistory[poseHistory.count - 2] : nil
         
-        // Convert swing plane to simd_float2
-        let referencePlane: (simd_float2, simd_float2)? = swingPlane.count >= 2 ? 
-            (simd_float2(Float(swingPlane[0].x), Float(swingPlane[0].y)),
-             simd_float2(Float(swingPlane[1].x), Float(swingPlane[1].y))) : nil
+        // Convert swing plane to normalized coordinates to match pose landmarks
+        let referencePlane: (simd_float2, simd_float2)? = swingPlane.count >= 2 && viewSize != .zero ? 
+            (simd_float2(Float(swingPlane[0].x / viewSize.width), Float(1 - swingPlane[0].y / viewSize.height)),
+             simd_float2(Float(swingPlane[1].x / viewSize.width), Float(1 - swingPlane[1].y / viewSize.height))) : nil
         
         // Calculate metrics
         currentMetrics.spineAngle = GeometryEngine.calculateSpineAngle(pose: pose)
