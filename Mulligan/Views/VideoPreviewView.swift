@@ -17,6 +17,7 @@ struct VideoPreviewView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: VideoPreviewNSView, context: Context) {
+        nsView.captureSession = captureSession
         nsView.poseLandmarks = poseLandmarks
         nsView.swingPlanePoints = swingPlanePoints
         nsView.isDrawingPlane = isDrawingPlane
