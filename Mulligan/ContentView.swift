@@ -1,0 +1,95 @@
+import SwiftUI
+import AVFoundation
+
+struct ContentView: View {
+    @StateObject private var videoCapture = VideoCaptureManager()
+    @StateObject private var poseDetector = PoseDetector()
+    @StateObject private var swingAnalyzer = SwingAnalyzer()
+    @StateObject private var aiCoach = AICoach()
+    
+    @State private var selectedDevice: AVCaptureDevice?
+    @State private var isRecording = false
+    @State private var coachingFeedback = ""
+    @State private var swingPlanePoints: [CGPoint] = []
+    @State private var isDrawingPlane = false
+    
+    var body: some View {
+        HSplitView {
+            // Left panel - Video preview
+            VStack {
+                VideoPreviewView(
+                    captureSession: videoCapture.captureSession,
+                    poseLandmarks: poseDetector.detectedPose,
+                    swingPlanePoints: $swingPlanePoints,
+                    isDrawingPlane: $isDrawingPlane
+                )
+                .frame(minHeight: 400)
+                
+                // Controls
+                HStack {
+                    Picker("Camera", selection: $selectedDevice) {
+                        Text("Select Camera").tag(nil as AVCaptureDevice?)
+                        ForEach(videoCapture.availableDevices, id: \.uniqueID) { device in
+                            Text(device.localizedName).tag(device as AVCaptureDevice?)
+                        }
+                    }
+                    .frame(width: 200)
+                    
+                    Button(action: toggleRecording) {
+                        Text(isRecording ? "Stop" : "Record")
+                            .frame(width: 80)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    
+                    Button("Clear Plane") {
+                        swingPlanePoints = []
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Button("Analyze Swing") {
+                        Task {
+                            await analyzeSwing()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(swingPlanePoints.count < 2)
+                }
+                .padding()
+            }
+            .frame(minWidth: 600)
+            
+            // Right panel - Coaching feedback
+            CoachingView(feedback: coachingFeedback, metrics: swingAnalyzer.currentMetrics)
+                .frame(minWidth: 300)
+        }
+        .frame(minWidth: 900, minHeight: 600)
+        .task {
+            await videoCapture.startSession()
+        }
+        .onChange(of: selectedDevice) { _, newDevice in
+            Task {
+                await videoCapture.switchDevice(to: newDevice)
+            }
+        }
+        .onChange(of: poseDetector.detectedPose) { _, newPose in
+            if let pose = newPose {
+                swingAnalyzer.updatePose(pose, swingPlane: swingPlanePoints)
+            }
+        }
+    }
+    
+    private func toggleRecording() {
+        isRecording.toggle()
+        if isRecording {
+            poseDetector.startDetection()
+        } else {
+            poseDetector.stopDetection()
+        }
+    }
+    
+    private func analyzeSwing() async {
+        let metrics = swingAnalyzer.currentMetrics
+        let feedback = await aiCoach.generateCoaching(metrics: metrics)
+        coachingFeedback = feedback
+    }
+}
