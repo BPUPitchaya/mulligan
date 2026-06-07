@@ -2,21 +2,15 @@ import Foundation
 
 @MainActor
 class AICoach: ObservableObject {
-    private let apiKey: String
-    private let baseURL = "https://api.openai.com/v1/chat/completions"
+    private let baseURL = "http://localhost:11434/api/chat"
+    private let model = "llama3.2:3b"
     
-    init(apiKey: String = "") {
-        // Set your API key here or use environment variable
-        self.apiKey = apiKey.isEmpty ? (ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "") : apiKey
+    init() {
+        // No API key needed for local Ollama
     }
     
     func generateCoaching(metrics: SwingMetrics) async -> String {
         let metricsDict = metrics.toDictionary()
-        
-        // Use local rule-based coaching if no API key
-        guard !apiKey.isEmpty else {
-            return generateLocalCoaching(metrics: metricsDict)
-        }
         
         let prompt = """
         You are a professional golf swing coach. Analyze the following swing metrics and provide concise, actionable coaching feedback.
@@ -41,7 +35,7 @@ class AICoach: ObservableObject {
             let feedback = try await requestCoaching(prompt: prompt)
             return feedback
         } catch {
-            return "Failed to generate coaching feedback: \(error.localizedDescription)"
+            return generateLocalCoaching(metrics: metricsDict)
         }
     }
     
@@ -115,27 +109,28 @@ Drill to practice: Practice slow-motion swings focusing on \(issues.first?.lower
     private func requestCoaching(prompt: String) async throws -> String {
         var request = URLRequest(url: URL(string: baseURL)!)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let body: [String: Any] = [
-            "model": "gpt-4o-mini",
+            "model": model,
             "messages": [
                 ["role": "system", "content": "You are a professional golf swing coach."],
                 ["role": "user", "content": prompt]
             ],
-            "max_tokens": 300,
-            "temperature": 0.7
+            "stream": false
         ]
         
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw AICoachError.requestFailed
+        }
         
         if let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let choices = jsonResponse["choices"] as? [[String: Any]],
-           let firstChoice = choices.first,
-           let message = firstChoice["message"] as? [String: Any],
+           let message = jsonResponse["message"] as? [String: Any],
            let content = message["content"] as? String {
             return content
         }
@@ -146,5 +141,5 @@ Drill to practice: Practice slow-motion swings focusing on \(issues.first?.lower
 
 enum AICoachError: Error {
     case invalidResponse
-    case missingAPIKey
+    case requestFailed
 }
