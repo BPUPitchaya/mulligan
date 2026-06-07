@@ -73,6 +73,74 @@ struct SwingMetrics {
     var earlyExtension: Bool = false
     var timestamp: Date = Date()
     
+    func calculateRating() -> Int {
+        var score = 10.0
+        var deductions = 0.0
+        
+        // Spine angle (ideal: 30-40 degrees)
+        if let spine = spineAngle {
+            if spine < 25 || spine > 45 {
+                deductions += 1.5
+            } else if spine < 30 || spine > 40 {
+                deductions += 0.5
+            }
+        } else {
+            deductions += 1.0
+        }
+        
+        // Hip rotation (ideal: 45+ degrees)
+        if let hip = hipRotation {
+            if hip < 30 {
+                deductions += 1.5
+            } else if hip < 45 {
+                deductions += 0.5
+            }
+        } else {
+            deductions += 1.0
+        }
+        
+        // Shoulder tilt (ideal: < 20 degrees)
+        if let tilt = shoulderTilt {
+            if abs(tilt) > 30 {
+                deductions += 1.5
+            } else if abs(tilt) > 20 {
+                deductions += 0.5
+            }
+        } else {
+            deductions += 1.0
+        }
+        
+        // Wrist path angle (ideal: < 10 degrees deviation)
+        if let wrist = wristPathAngle {
+            if abs(wrist) > 15 {
+                deductions += 1.5
+            } else if abs(wrist) > 10 {
+                deductions += 0.5
+            }
+        } else {
+            deductions += 1.0
+        }
+        
+        // Hand plane angle (ideal: < 5 degrees deviation)
+        if let hand = handPlaneAngle {
+            if abs(hand) > 10 {
+                deductions += 1.5
+            } else if abs(hand) > 5 {
+                deductions += 0.5
+            }
+        } else {
+            deductions += 1.0
+        }
+        
+        // Early extension (major fault)
+        if earlyExtension {
+            deductions += 2.0
+        }
+        
+        let finalScore = max(1, min(10, Int(score - deductions)))
+        return finalScore
+    }
+    
     func toDictionary() -> [String: Any] {
         var dict: [String: Any] = [:]
         
@@ -92,6 +160,7 @@ struct SwingMetrics {
             dict["hand_plane_angle"] = handPlaneAngle
         }
         dict["early_extension"] = earlyExtension
+        dict["rating"] = calculateRating()
         
         return dict
     }

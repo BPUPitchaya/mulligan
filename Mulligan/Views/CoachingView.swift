@@ -4,9 +4,41 @@ struct CoachingView: View {
     let feedback: String
     let metrics: SwingMetrics
     
+    var ratingColor: Color {
+        let rating = metrics.calculateRating()
+        switch rating {
+        case 8...10: return .green
+        case 6...7: return .blue
+        case 4...5: return .orange
+        default: return .red
+        }
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                // Rating Display
+                VStack(spacing: 8) {
+                    Text("Swing Rating")
+                        .font(.headline)
+                    
+                    HStack(spacing: 8) {
+                        Text("\(metrics.calculateRating())")
+                            .font(.system(size: 48, weight: .bold))
+                            .foregroundColor(ratingColor)
+                        
+                        Text("/ 10")
+                            .font(.title2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(ratingColor.opacity(0.1))
+                .cornerRadius(12)
+                
+                Divider()
+                
                 Text("AI Coach")
                     .font(.title)
                     .fontWeight(.bold)
