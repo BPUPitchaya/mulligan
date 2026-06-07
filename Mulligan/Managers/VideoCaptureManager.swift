@@ -60,25 +60,15 @@ class VideoCaptureManager: NSObject, ObservableObject {
     
     @MainActor
     func startSession() async {
-        guard let session = captureSession else { 
-            print("No capture session available")
-            return 
-        }
-        
-        print("Available devices: \(availableDevices.count)")
-        print("Session inputs: \(session.inputs.count)")
+        guard let session = captureSession else { return }
         
         // Ensure we have an input before starting
         if session.inputs.isEmpty, let firstDevice = availableDevices.first {
-            print("No input, adding first device: \(firstDevice.localizedName)")
             await switchDevice(to: firstDevice)
         }
         
         if !session.isRunning {
             session.startRunning()
-            print("Session started, isRunning: \(session.isRunning)")
-        } else {
-            print("Session already running")
         }
     }
     
@@ -101,9 +91,6 @@ class VideoCaptureManager: NSObject, ObservableObject {
             let input = try AVCaptureDeviceInput(device: newDevice)
             if session.canAddInput(input) {
                 session.addInput(input)
-                print("Successfully added device: \(newDevice.localizedName)")
-            } else {
-                print("Cannot add input to session")
             }
         } catch {
             print("Failed to add device input: \(error)")
@@ -111,7 +98,6 @@ class VideoCaptureManager: NSObject, ObservableObject {
         
         if wasRunning {
             session.startRunning()
-            print("Session started, isRunning: \(session.isRunning)")
         }
     }
     
