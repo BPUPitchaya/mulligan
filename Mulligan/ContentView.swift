@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var coachingFeedback = ""
     @State private var swingPlanePoints: [CGPoint] = []
     @State private var isDrawingPlane = false
+    @State private var showPositioningGuide = true
     
     var body: some View {
         HSplitView {
@@ -21,7 +22,8 @@ struct ContentView: View {
                     captureSession: videoCapture.captureSession,
                     poseLandmarks: poseDetector.detectedPose,
                     swingPlanePoints: $swingPlanePoints,
-                    isDrawingPlane: $isDrawingPlane
+                    isDrawingPlane: $isDrawingPlane,
+                    showPositioningGuide: $showPositioningGuide
                 )
                 .frame(minHeight: 400)
                 
@@ -45,6 +47,9 @@ struct ContentView: View {
                         swingPlanePoints = []
                     }
                     .buttonStyle(.bordered)
+                    
+                    Toggle("Position Guide", isOn: $showPositioningGuide)
+                        .toggleStyle(.switch)
                     
                     Button("Analyze Swing") {
                         Task {

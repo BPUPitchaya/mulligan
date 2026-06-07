@@ -6,6 +6,7 @@ struct VideoPreviewView: NSViewRepresentable {
     let poseLandmarks: HumanBodyPose?
     @Binding var swingPlanePoints: [CGPoint]
     @Binding var isDrawingPlane: Bool
+    @Binding var showPositioningGuide: Bool
     
     func makeNSView(context: Context) -> VideoPreviewNSView {
         let view = VideoPreviewNSView()
@@ -13,6 +14,7 @@ struct VideoPreviewView: NSViewRepresentable {
         view.poseLandmarks = poseLandmarks
         view.swingPlanePoints = swingPlanePoints
         view.isDrawingPlane = isDrawingPlane
+        view.showPositioningGuide = showPositioningGuide
         return view
     }
     
@@ -21,6 +23,7 @@ struct VideoPreviewView: NSViewRepresentable {
         nsView.poseLandmarks = poseLandmarks
         nsView.swingPlanePoints = swingPlanePoints
         nsView.isDrawingPlane = isDrawingPlane
+        nsView.showPositioningGuide = showPositioningGuide
     }
 }
 
@@ -44,6 +47,12 @@ class VideoPreviewNSView: NSView {
     }
     
     var isDrawingPlane: Bool = false
+    
+    var showPositioningGuide: Bool = false {
+        didSet {
+            needsDisplay = true
+        }
+    }
     
     private var previewLayer: AVCaptureVideoPreviewLayer?
     
@@ -82,6 +91,11 @@ class VideoPreviewNSView: NSView {
         
         guard let context = NSGraphicsContext.current?.cgContext else { return }
         
+        // Draw positioning guide
+        if showPositioningGuide {
+            drawPositioningGuide(in: context)
+        }
+        
         // Draw swing plane
         if swingPlanePoints.count >= 2 {
             context.setStrokeColor(NSColor.red.cgColor)
@@ -99,6 +113,64 @@ class VideoPreviewNSView: NSView {
         if let pose = poseLandmarks {
             drawPoseLandmarks(pose, in: context)
         }
+    }
+    
+    private func drawPositioningGuide(in context: CGContext) {
+        let bounds = self.bounds
+        let centerX = bounds.width / 2
+        let centerY = bounds.height / 2
+        
+        // Draw semi-transparent background area for ideal positioning
+        let guideWidth = bounds.width * 0.6
+        let guideHeight = bounds.height * 0.7
+        let guideRect = CGRect(
+            x: centerX - guideWidth / 2,
+            y: centerY - guideHeight / 2,
+            width: guideWidth,
+            height: guideHeight
+        )
+        
+        context.setFillColor(NSColor.systemGreen.withAlphaComponent(0.1).cgColor)
+        context.fill(guideRect)
+        
+        // Draw border
+        context.setStrokeColor(NSColor.systemGreen.withAlphaComponent(0.5).cgColor)
+        context.setLineWidth(2.0)
+        context.setLineDash(phase: 0, lengths: [5, 5])
+        context.stroke(guideRect)
+        
+        // Draw center line (ball position reference)
+        context.setStrokeColor(NSColor.white.withAlphaComponent(0.3).cgColor)
+        context.setLineWidth(1.0)
+        context.setLineDash(phase: 0, lengths: [])
+        
+        let ballY = centerY + guideHeight * 0.3
+        context.move(to: CGPoint(x: centerX - guideWidth / 2, y: ballY))
+        context.addLine(to: CGPoint(x: centerX + guideWidth / 2, y: ballY))
+        context.strokePath()
+        
+        // Draw shoulder line reference
+        let shoulderY = centerY - guideHeight * 0.2
+        context.setStrokeColor(NSColor.systemBlue.withAlphaComponent(0.3).cgColor)
+        context.setLineDash(phase: 0, lengths: [3, 3])
+        context.move(to: CGPoint(x: centerX - guideWidth * 0.3, y: shoulderY))
+        context.addLine(to: CGPoint(x: centerX + guideWidth * 0.3, y: shoulderY))
+        context.strokePath()
+        
+        // Draw label
+        let label = "Stand Here"
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 14, weight: .medium),
+            .foregroundColor: NSColor.white.withAlphaComponent(0.7)
+        ]
+        let labelSize = label.size(withAttributes: attributes)
+        let labelRect = CGRect(
+            x: centerX - labelSize.width / 2,
+            y: centerY - guideHeight / 2 - 25,
+            width: labelSize.width,
+            height: labelSize.height
+        )
+        label.draw(in: labelRect, withAttributes: attributes)
     }
     
     private func drawPoseLandmarks(_ pose: HumanBodyPose, in context: CGContext) {
