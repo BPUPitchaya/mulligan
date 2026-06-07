@@ -21,15 +21,7 @@ class VideoCaptureManager: NSObject, ObservableObject {
         let session = AVCaptureSession()
         session.sessionPreset = .high
         
-        let videoOutput = AVCaptureVideoDataOutput()
-        videoOutput.setSampleBufferDelegate(nil, queue: DispatchQueue(label: "videoQueue"))
-        
-        if session.canAddOutput(videoOutput) {
-            session.addOutput(videoOutput)
-        }
-        
         self.captureSession = session
-        self.videoOutput = videoOutput
     }
     
     private func discoverDevices() {
@@ -70,6 +62,11 @@ class VideoCaptureManager: NSObject, ObservableObject {
     func startSession() async {
         guard let session = captureSession else { return }
         
+        // Ensure we have an input before starting
+        if session.inputs.isEmpty, let firstDevice = availableDevices.first {
+            await switchDevice(to: firstDevice)
+        }
+        
         if !session.isRunning {
             session.startRunning()
         }
@@ -84,6 +81,7 @@ class VideoCaptureManager: NSObject, ObservableObject {
         guard let session = captureSession,
               let newDevice = device else { return }
         
+        let wasRunning = session.isRunning
         session.stopRunning()
         
         // Remove current input
@@ -98,7 +96,9 @@ class VideoCaptureManager: NSObject, ObservableObject {
             print("Failed to add device input: \(error)")
         }
         
-        session.startRunning()
+        if wasRunning {
+            session.startRunning()
+        }
     }
     
     func getPreviewLayer() -> AVCaptureVideoPreviewLayer? {
