@@ -50,11 +50,13 @@ class VideoPreviewNSView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
+        layer = CALayer()
     }
     
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         wantsLayer = true
+        layer = CALayer()
     }
     
     private func setupPreviewLayer() {
@@ -70,8 +72,8 @@ class VideoPreviewNSView: NSView {
         previewLayer = preview
     }
     
-    override func resizeSubviews(withOldSize oldSize: NSSize) {
-        super.resizeSubviews(withOldSize: oldSize)
+    override func layout() {
+        super.layout()
         previewLayer?.frame = bounds
     }
     

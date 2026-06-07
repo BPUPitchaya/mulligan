@@ -91,6 +91,9 @@ class VideoCaptureManager: NSObject, ObservableObject {
             let input = try AVCaptureDeviceInput(device: newDevice)
             if session.canAddInput(input) {
                 session.addInput(input)
+                print("Successfully added device: \(newDevice.localizedName)")
+            } else {
+                print("Cannot add input to session")
             }
         } catch {
             print("Failed to add device input: \(error)")
@@ -98,6 +101,7 @@ class VideoCaptureManager: NSObject, ObservableObject {
         
         if wasRunning {
             session.startRunning()
+            print("Session started, isRunning: \(session.isRunning)")
         }
     }
     
