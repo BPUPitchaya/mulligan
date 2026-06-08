@@ -151,6 +151,9 @@ class VideoPreviewNSView: NSView {
         context.setLineDash(phase: 0, lengths: [5, 5])
         context.stroke(guideRect)
         
+        // Draw golfer silhouette (ideal address position)
+        drawGolferSilhouette(in: context, centerX: centerX, centerY: centerY, guideWidth: guideWidth, guideHeight: guideHeight)
+        
         // Draw center line (ball position reference)
         context.setStrokeColor(NSColor.white.withAlphaComponent(0.3).cgColor)
         context.setLineWidth(1.0)
@@ -183,6 +186,91 @@ class VideoPreviewNSView: NSView {
             height: labelSize.height
         )
         label.draw(in: labelRect, withAttributes: attributes)
+    }
+    
+    private func drawGolferSilhouette(in context: CGContext, centerX: CGFloat, centerY: CGFloat, guideWidth: CGFloat, guideHeight: CGFloat) {
+        // Golfer silhouette points (ideal address position - side view)
+        let scale = guideWidth * 0.4
+        let offsetX = centerX
+        let offsetY = centerY - guideHeight * 0.1
+        
+        // Head
+        let headCenter = CGPoint(x: offsetX, y: offsetY - scale * 0.4)
+        let headRadius = scale * 0.08
+        
+        context.setStrokeColor(NSColor.white.withAlphaComponent(0.4).cgColor)
+        context.setLineWidth(2.0)
+        context.setLineDash(phase: 0, lengths: [])
+        
+        context.addEllipse(in: CGRect(x: headCenter.x - headRadius, y: headCenter.y - headRadius,
+                                     width: headRadius * 2, height: headRadius * 2))
+        context.strokePath()
+        
+        // Body lines (stick figure in address position)
+        let neck = CGPoint(x: offsetX, y: offsetY - scale * 0.3)
+        let shoulder = CGPoint(x: offsetX, y: offsetY - scale * 0.15)
+        let hip = CGPoint(x: offsetX, y: offsetY + scale * 0.15)
+        let knee = CGPoint(x: offsetX - scale * 0.05, y: offsetY + scale * 0.4)
+        let ankle = CGPoint(x: offsetX - scale * 0.02, y: offsetY + scale * 0.65)
+        
+        // Spine (tilted forward)
+        context.move(to: neck)
+        context.addLine(to: shoulder)
+        context.addLine(to: hip)
+        context.strokePath()
+        
+        // Legs
+        context.move(to: hip)
+        context.addLine(to: knee)
+        context.addLine(to: ankle)
+        context.strokePath()
+        
+        // Arms (hanging down in address position)
+        let leftShoulder = CGPoint(x: offsetX - scale * 0.12, y: shoulder.y)
+        let rightShoulder = CGPoint(x: offsetX + scale * 0.12, y: shoulder.y)
+        let leftElbow = CGPoint(x: offsetX - scale * 0.15, y: offsetY + scale * 0.1)
+        let rightElbow = CGPoint(x: offsetX + scale * 0.15, y: offsetY + scale * 0.1)
+        let leftWrist = CGPoint(x: offsetX - scale * 0.18, y: offsetY + scale * 0.2)
+        let rightWrist = CGPoint(x: offsetX + scale * 0.18, y: offsetY + scale * 0.2)
+        
+        // Shoulder line
+        context.move(to: leftShoulder)
+        context.addLine(to: rightShoulder)
+        context.strokePath()
+        
+        // Left arm
+        context.move(to: leftShoulder)
+        context.addLine(to: leftElbow)
+        context.addLine(to: leftWrist)
+        context.strokePath()
+        
+        // Right arm
+        context.move(to: rightShoulder)
+        context.addLine(to: rightElbow)
+        context.addLine(to: rightWrist)
+        context.strokePath()
+        
+        // Club shaft indication
+        let clubTop = CGPoint(x: offsetX + scale * 0.18, y: offsetY + scale * 0.2)
+        let clubBottom = CGPoint(x: offsetX + scale * 0.1, y: offsetY + scale * 0.5)
+        
+        context.setStrokeColor(NSColor.systemYellow.withAlphaComponent(0.5).cgColor)
+        context.setLineWidth(3.0)
+        context.move(to: clubTop)
+        context.addLine(to: clubBottom)
+        context.strokePath()
+        
+        // Draw joint markers
+        context.setFillColor(NSColor.white.withAlphaComponent(0.6).cgColor)
+        let jointRadius: CGFloat = 3.0
+        
+        let joints = [headCenter, neck, shoulder, hip, knee, ankle, leftShoulder, rightShoulder,
+                     leftElbow, rightElbow, leftWrist, rightWrist]
+        
+        for joint in joints {
+            context.fillEllipse(in: CGRect(x: joint.x - jointRadius, y: joint.y - jointRadius,
+                                          width: jointRadius * 2, height: jointRadius * 2))
+        }
     }
     
     private func drawPoseLandmarks(_ pose: HumanBodyPose, in context: CGContext) {
