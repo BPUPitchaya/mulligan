@@ -11,6 +11,8 @@ class PoseDetector: NSObject, ObservableObject {
     private var poseRequest: VNDetectHumanBodyPoseRequest?
     private var visionQueue = DispatchQueue(label: "com.mulligan.visionQueue")
     private var isDetecting = false
+    private var lastProcessedTime: Date = Date()
+    private let processingInterval: TimeInterval = 0.1 // Process every 100ms (10 FPS)
     
     override init() {
         super.init()
@@ -34,6 +36,11 @@ class PoseDetector: NSObject, ObservableObject {
         guard isDetecting,
               let request = poseRequest else { return }
         
+        // Throttle processing to prevent queue overflow
+        let now = Date()
+        guard now.timeIntervalSince(lastProcessedTime) >= processingInterval else { return }
+        lastProcessedTime = now
+        
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
@@ -50,7 +57,7 @@ class PoseDetector: NSObject, ObservableObject {
                     }
                 }
             } catch {
-                print("Vision error: \(error)")
+                // Silently handle vision errors to prevent log spam
             }
         }
     }
@@ -79,7 +86,7 @@ class PoseDetector: NSObject, ObservableObject {
         ]
         
         for (vnJoint, jointName) in jointMapping {
-            if let point = try? observation.recognizedPoint(vnJoint), point.confidence > 0.3 {
+            if let point = try? observation.recognizedPoint(vnJoint), point.confidence > 0.1 {
                 joints[jointName] = simd_float2(Float(point.location.x), Float(point.location.y))
             }
         }
